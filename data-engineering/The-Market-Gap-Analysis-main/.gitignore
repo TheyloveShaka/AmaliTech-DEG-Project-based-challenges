@@ -1,0 +1,27 @@
+# ── Raw Olist dataset (NEVER commit — the brief explicitly forbids it) ──
+data/raw/
+*.csv
+# Allow the small, cleaned/aggregated artifacts the dashboard needs:
+!data/processed/*.parquet
+!data/processed/*.csv
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ── Notebook exports are KEPT (brief requires HTML/PDF export) ──
+# (do not ignore notebooks/*.html or *.pdf)
+
+# ── OS / editor noise ──
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Secrets ──
+kaggle.json
+.streamlit/secrets.toml
