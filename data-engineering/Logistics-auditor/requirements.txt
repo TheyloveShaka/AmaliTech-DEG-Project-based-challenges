@@ -1,0 +1,10 @@
+# Streamlit Cloud installs these automatically when it deploys the dashboard.
+# They also cover everything the notebook needs if you run locally.
+streamlit>=1.36
+pandas>=2.0
+plotly>=5.20
+pyarrow>=15.0        # reads/writes the cleaned .parquet artifact
+
+# Notebook-only (NOT needed by the dashboard, harmless if installed):
+matplotlib>=3.7
+seaborn>=0.13

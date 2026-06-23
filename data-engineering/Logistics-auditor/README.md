@@ -1,165 +1,104 @@
-# Project Brief: The "Last Mile" Logistics Auditor
+# The "Last Mile" Logistics Auditor — Veridi Logistics
 
-**Client:** Veridi Logistics (Global E-Commerce Aggregator)
-**Deliverable:** Public Dashboard, Code Notebook & Insight Presentation
+> Delivery-performance audit of the Olist Brazilian e-commerce dataset, answering the CEO's
+> question: **are we failing specific regions, or is this a nationwide problem?**
 
----
+## A. Executive Summary
 
-## 1. Business Context
+Veridi is **not** systematically late — **91.9%** of the 96,470 delivered orders arrive **on or
+before** the promised date — so this is **not a nationwide problem**. The pain is a concentrated
+**8.1% tail** of late orders that clusters in **specific remote regions**: the North/North-East
+runs a **13.7%** late rate versus **7.9%** in the core states, led by **Alagoas (23.9%)**,
+**Maranhão (19.7%)**, and **Piauí (16.0%)**. Lateness has a direct, measurable effect on
+sentiment — average review score collapses from **4.29/5** for on-time orders to **3.46** for
+late and **1.78** for super-late ones (correlation **−0.276** between days-late and score).
+Our pipeline decomposition pinpoints the cause: late orders spend **25.2 days in carrier transit
+vs. 7.4 days** for on-time orders, while seller handling barely differs — so the bottleneck is
+the **carrier last mile to remote states**, not the sellers. **Recommendation:** stop padding
+national delivery estimates and invest in regional carrier capacity/hubs for the North/North-East,
+where over-promising is doing the most reputational damage.
 
-**Veridi Logistics** manages shipping for thousands of online sellers. Recently, the CEO has noticed a spike in negative customer reviews. She has a "gut feeling" that the problem isn't just that packages are late, but that the estimated delivery dates provided to customers are wildly inaccurate (i.e., we are over-promising and under-delivering).
+## B. Project Links
 
-She needs you to audit the delivery data to find the root cause. She specifically wants to know: **"Are we failing specific regions, or is this a nationwide problem?"**
+| Deliverable                         | Link                                                                                  |
+| ----------------------------------- | ------------------------------------------------------------------------------------- |
+| Notebook (Google Colab)             | https://colab.research.google.com/drive/1exJGsLmxyIze0sokeHgnQr78WAyPEZ0q?usp=sharing |
+| Dashboard (Streamlit Cloud)         | <STREAMLIT_LINK> (public, no login)                                                   |
+| Presentation (slides PDF/PPT)       | <SLIDES_LINK>                                                                         |
+| Video walkthrough (optional, 2 min) | <YOUTUBE_LINK>                                                                        |
 
-Your job is to build a "Delivery Performance" audit tool that connects the dots between **Logistics Data** (when a package arrived) and **Customer Sentiment** (how they rated the experience).
+## C. Technical Explanation
 
-## 2. The Data
+**Data cleaning.** I deduplicated reviews to **one row per order** (keeping the latest review
+answer) and collapsed the multi-item `order_items` table to **one primary item per order**
+_before_ joining — this prevents the 1-to-many row inflation the brief warns about (an
+`assert len(master) == len(orders)` guards it). Dates are parsed with `errors="coerce"`, and
+orders that never reached the customer (`canceled`/`unavailable` or a null delivery date) are
+**flagged via `is_delivered` and excluded** from all delay/sentiment metrics. `Days_Difference`
+follows the brief's convention (`estimated − actual`), and I added an intuitive `days_late`
+(0 if on time) for charting.
 
-You will use the **Olist E-Commerce Dataset**, a real commercial dataset from a Brazilian marketplace. This is a relational database dump, meaning the data is split across multiple CSV files.
-
-- **Source:** [Kaggle - Olist Brazilian E-Commerce Dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
-- **Key Files to Use:**
-  - `olist_orders_dataset.csv` (The central table)
-  - `olist_order_reviews_dataset.csv` (Sentiment)
-  - `olist_customers_dataset.csv` (Location)
-  - `olist_products_dataset.csv` (Categories)
-
-## 3. Tooling Requirements
-
-You have the flexibility to choose your development environment:
-
-- **Option A (Recommended):** Use a cloud-hosted notebook like **Google Colab**, or **Deepnote**, etc.
-- **Option B:** Use a local **Jupyter Notebook** or **VS Code**.
-  - _Condition:_ If you choose this, you must ensure your code is reproducible. Do not reference local file paths (e.g., `C:/Downloads/...`). Assume the dataset is in the same folder as your notebook.
-- **Dashboarding:** The final output must be a **publicly accessible link** (e.g., Tableau Public, Google Looker Studio, Streamlit Cloud, or PowerBI Web, etc.).
-
----
-
-## 4. User Stories & Acceptance Criteria
-
-### Story 1: The Schema Builder
-
-**As a** Data Engineer,
-**I want** to join the Orders, Reviews, and Customers tables into a single master dataset,
-**So that** I can analyze a customer's location and their review score in the same row.
-
-- **Acceptance Criteria:**
-  - Load the raw CSVs into your notebook.
-  - Perform the correct joins (e.g., join Reviews to Orders on `order_id`, join Customers to Orders on `customer_id`).
-  - **Check:** Ensure you don't accidentally duplicate rows (a common error with 1-to-many joins).
-
-### Story 2: The "Real" Delay Calculator
-
-**As a** Logistics Manager,
-**I want** to know the difference between the "Estimated Delivery Date" and the "Actual Delivery Date,"
-**So that** I can see how often we are lying to customers.
-
-- **Acceptance Criteria:**
-  - Create a new calculated column: `Days_Difference` = `order_estimated_delivery_date` - `order_delivered_customer_date`.
-  - Classify orders into statuses: "On Time", "Late", and "Super Late" (> 5 days late).
-  - Handle missing values: Some orders were never delivered (`order_status` = 'canceled' or 'unavailable'). These should be excluded or flagged separately.
-
-### Story 3: The Geographic Heatmap
-
-**As a** Regional Director,
-**I want** to see which specific States (`customer_state`) have the highest percentage of late deliveries,
-**So that** I can focus my repair efforts on the worst regions.
-
-- **Acceptance Criteria:**
-  - Calculate the % of late orders per State.
-  - Visualize this on a map or a bar chart.
-  - **Insight:** Identify if "Remote" states (far from the distribution center) are disproportionately affected.
-
-### Story 4: The Sentiment Correlation
-
-**As a** Customer Success Lead,
-**I want** to see if late deliveries actually cause bad reviews,
-**So that** I can prove to the CEO that logistics is the problem.
-
-- **Acceptance Criteria:**
-  - Create a visualization comparing "Delivery Delay (Days)" vs "Average Review Score (1-5)".
-  - Show the average review score for "On Time" orders vs. "Late" orders.
+**Candidate's Choice — Delivery-pipeline decomposition.** I split total delivery time into
+**handling time** (purchase → carrier; a _seller_ problem) and **transit time** (carrier →
+customer; a _carrier_ problem). This matters because the fix is completely different depending
+on which leg is slow: the analysis shows late/remote orders lose their extra days in **transit**,
+so Veridi should invest in carrier capacity and regional hubs rather than chasing seller SLAs.
+That turns "we're late" into a targeted, costed action — the difference between a chart and a
+decision.
 
 ---
 
-## 5. Bonus User Story: The "Translation" Challenge
+## How this repo is organised
 
-**As a** Global Analyst,
-**I want** to see product categories in **English**, not Portuguese,
-**So that** I can understand if "Furniture" is harder to ship than "Electronics".
+```
+.
+├── README.md                       <- you are here (submission writeup)
+├── requirements.txt                <- deps for the dashboard + notebook
+├── streamlit_app.py                <- the public dashboard (reads the cleaned parquet)
+├── notebooks/
+│   ├── logistics_auditor.ipynb     <- the full analysis (Stories 1-4 + bonus + candidate's choice)
+│   └── logistics_auditor.html      <- exported render with charts (brief requires HTML/PDF export)
+└── data/
+    ├── raw/                        <- raw Olist CSVs go here (git-ignored, never committed)
+    └── processed/
+        └── orders_clean.parquet    <- small cleaned artifact the dashboard reads (committed)
+```
 
-- **Acceptance Criteria:**
-  - The `product_category_name` is in Portuguese (e.g., `cama_mesa_banho`).
-  - Use the `product_category_name_translation.csv` file included in the dataset (or create your own mapping) to translate these into English for your final dashboard.
+## What each User Story maps to
 
----
+| Story                     | Where it lives                                                           |
+| ------------------------- | ------------------------------------------------------------------------ |
+| 1 — Schema Builder        | Notebook §"Story 1"; row-inflation `assert`                              |
+| 2 — Delay Calculator      | Notebook §"Story 2"; `days_difference`, On Time / Late / Super Late      |
+| 3 — Geographic Heatmap    | Notebook §"Story 3"; dashboard **Geography** tab                         |
+| 4 — Sentiment Correlation | Notebook §"Story 4"; dashboard **Sentiment** tab                         |
+| Bonus - Translation       | Notebook "Bonus" section; English categories in dashboard Categories tab |
+| Candidate's Choice        | Notebook "Candidate's Choice" section; dashboard Pipeline tab            |
 
-## 6. The "Candidate's Choice" Challenge
+## Reproduce it
 
-**As a** Creative Problem Solver,
-**I want** to include one extra feature or analysis that adds specific business value,
-**So that** I can demonstrate my ability to think beyond the basic requirements.
+```bash
+pip install -r requirements.txt
+# 1) Download the Olist dataset from Kaggle into data/raw/
+# 2) Run notebooks/logistics_auditor.ipynb  -> writes data/processed/orders_clean.parquet
+# 3) Launch the dashboard:
+streamlit run streamlit_app.py
+```
 
-- **Instructions:**
-  - Add one more metric, chart, or drill-down.
-  - **Requirement:** You must justify _why_ this feature matters to the business in your README.
-
----
-
-## 7. Submission Guidelines
-
-Please edit this `README.md` file in your forked repository to include the following three sections at the top:
-
-### A. The Executive Summary
-
-- A 3-5 sentence summary of your findings.
-
-### B. Project Links
-
-- **Link to Notebook:** (e.g., Google Colab, etc.). _Ensure sharing permissions are set to "Anyone with the link can view"._
-- **Link to Dashboard:** (e.g., Tableau Public, etc.).
-- **Link to Presentation:** A link to a short slide deck (PDF/PPT) AND (Optional) a 2-minute video walkthrough (YouTube) explaining your results.
-
-### C. Technical Explanation
-
-- Briefly explain how you handled the "Data Cleaning".
-- Explain your "Candidate's Choice" addition.
-
-**Important Note on Code Submission:**
-
-- Upload your `.ipynb` notebook file to the repo.
-- **Crucial:** Also upload an **HTML or PDF export** of your notebook so we can see your charts even if GitHub fails to render the notebook code.
-- Once you are ready, please fill out the [Official Submission Form Here](https://forms.cloud.microsoft/e/CeQN2mCyUr) with your links
+Data source: [Olist Brazilian E-Commerce Dataset (Kaggle)](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce).
 
 ---
 
-## 🛑 CRITICAL: Pre-Submission Checklist
+## Pre-Submission Checklist (from the brief)
 
-**Before you submit your form, you MUST complete this checklist.**
-
-> ⚠️ **WARNING:** If you miss any of these items, your submission will be flagged as "Incomplete" and you will **NOT** be invited to an interview.
->
-> **We do not accept "permission error" excuses. Test your links in Incognito Mode.**
-
-### 1. Repository & Code Checks
-
-- [ ] **My GitHub Repo is Public.** (Open the link in a Private/Incognito window to verify).
-- [ ] **I have uploaded the `.ipynb` notebook file.**
-- [ ] **I have ALSO uploaded an HTML or PDF export** of the notebook.
-- [ ] **I have NOT uploaded the massive raw dataset.** (Use `.gitignore` or just don't commit the CSV).
-- [ ] **My code uses Relative Paths.**
-
-### 2. Deliverable Checks
-
-- [ ] **My Dashboard link is publicly accessible.** (No login required).
-- [ ] **My Presentation link is publicly accessible.** (Permissions set to "Anyone with the link can view").
-- [ ] **I have updated this `README.md` file** with my Executive Summary and technical notes.
-
-### 3. Completeness
-
-- [ ] I have completed **User Stories 1-4**.
-- [ ] I have completed the **"Candidate's Choice"** challenge and explained it in the README.
-
-**✅ Only when you have checked every box above, proceed to the submission form.**
-
----
+- [ ] GitHub repo is **public** (verify in an Incognito window)
+- [ ] `.ipynb` notebook uploaded
+- [ ] **HTML or PDF export** of the notebook uploaded
+- [ ] Raw dataset **NOT** committed (`.gitignore` handles this)
+- [ ] Code uses **relative paths**
+- [ ] Dashboard link is **public** (no login)
+- [ ] Presentation link is **public**
+- [ ] This README updated with Executive Summary + technical notes
+- [ ] User Stories 1–4 complete
+- [ ] Candidate's Choice complete + explained here
+- [ ] Submission form filled: https://forms.cloud.microsoft/e/CeQN2mCyUr
