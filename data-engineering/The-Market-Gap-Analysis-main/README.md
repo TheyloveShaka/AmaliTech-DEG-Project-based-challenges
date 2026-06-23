@@ -23,8 +23,7 @@ healthy-snacking line into **Chocolate & Confectionery** with products at >= 10g
 |-------------|------|
 | Notebook (Google Colab) | https://colab.research.google.com/drive/1IDU1QVRzoetl92BTTo7HsBc1djOZBRqX?usp=sharing |
 | Dashboard (Streamlit Cloud) | https://amalitech-deg-project-based-challenges-d9dtxpappv26xqlt8rjgu8i.streamlit.app/ |
-| Presentation (slides PDF/PPT) | <SLIDES_LINK> |
-| Video walkthrough (optional, 2 min) | <YOUTUBE_LINK> |
+| Presentation (slides) | https://docs.google.com/presentation/d/1Soi3fAfZvo3twumDnyopuaNazUAr82LDXIn9h_D4T7k/edit?usp=sharing |
 
 ## C. Technical Explanation
 
