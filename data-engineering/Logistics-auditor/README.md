@@ -23,7 +23,7 @@ where over-promising is doing the most reputational damage.
 | Deliverable                         | Link                                                                                  |
 | ----------------------------------- | ------------------------------------------------------------------------------------- |
 | Notebook (Google Colab)             | https://colab.research.google.com/drive/1exJGsLmxyIze0sokeHgnQr78WAyPEZ0q?usp=sharing |
-| Dashboard (Streamlit Cloud)         | <STREAMLIT_LINK> (public, no login)                                                   |
+| Dashboard (Streamlit Cloud)         | https://amalitech-deg-project-based-challenges-uh2ab99qkhbakqtiy5nypk.streamlit.app/  |
 | Presentation (slides PDF/PPT)       | <SLIDES_LINK>                                                                         |
 | Video walkthrough (optional, 2 min) | <YOUTUBE_LINK>                                                                        |
 
