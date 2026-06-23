@@ -3,8 +3,6 @@
 > Finding the "Blue Ocean" in the snack aisle: categories where supply skews high-sugar /
 > low-protein, leaving room for a healthy-snacking line. Built on the Open Food Facts dataset.
 
-<!-- Fill the placeholders <LIKE_THIS> from the notebook's final "Key findings" cell. -->
-
 ## A. Executive Summary
 
 Across 218,092 snack products, only **17.3%** sit in the high-protein / low-sugar "empty
